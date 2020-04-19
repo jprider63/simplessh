@@ -242,12 +242,14 @@ struct simplessh_either *simplessh_exec_command(
     if(err != NULL) free(err); \
     free(result); \
     sigaction( SIGPIPE, &prev_handler, NULL); \
+    interrupted = 0; \
     returnError(either, (error)); \
   }
 
   while((channel = libssh2_channel_open_session(session->lsession)) == NULL) {
-    if( interrupted)
+    if( interrupted) {
       returnLocalErrorC( INTERRUPTED);
+    }
 
     if(libssh2_session_last_errno(session->lsession) == LIBSSH2_ERROR_EAGAIN)
       waitsocket(session->sock, session->lsession);
@@ -257,8 +259,9 @@ struct simplessh_either *simplessh_exec_command(
 
   // Send the command
   while((rc = libssh2_channel_exec(channel, command)) != 0) {
-    if( interrupted)
+    if( interrupted) {
       returnLocalErrorC( INTERRUPTED);
+    }
 
     if(rc == LIBSSH2_ERROR_EAGAIN) {
       waitsocket(session->sock, session->lsession);
@@ -273,8 +276,9 @@ struct simplessh_either *simplessh_exec_command(
   err = malloc(err_size);
 
   for(;;) {
-    if( interrupted)
+    if( interrupted) {
       returnLocalErrorC( INTERRUPTED);
+    }
 
 
     rc  = libssh2_channel_read(channel,
@@ -317,8 +321,9 @@ struct simplessh_either *simplessh_exec_command(
   result->err = err;
 
   while((rc = libssh2_channel_close(channel)) == LIBSSH2_ERROR_EAGAIN) {
-    if( interrupted)
+    if( interrupted) {
       returnLocalErrorC( INTERRUPTED);
+    }
 
     waitsocket(session->sock, session->lsession);
   }
@@ -336,6 +341,7 @@ struct simplessh_either *simplessh_exec_command(
 
   // Revert signal handler.
   sigaction( SIGPIPE, &prev_handler, NULL);
+  interrupted = 0;
 
   return either;
 }
