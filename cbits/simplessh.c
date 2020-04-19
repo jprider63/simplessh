@@ -306,12 +306,12 @@ struct simplessh_either *simplessh_exec_command(
       }
     }
   }
-  out[out_position] = '\0';
   out = realloc(out, out_position + 1);
+  out[out_position] = '\0';
   result->out = out;
 
-  err[err_position] = '\0';
   err = realloc(err, err_position + 1);
+  err[err_position] = '\0';
   result->err = err;
 
   while((rc = libssh2_channel_close(channel)) == LIBSSH2_ERROR_EAGAIN) {
