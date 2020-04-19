@@ -15,6 +15,7 @@ module Network.SSH.Client.SimpleSSH
   , sendFile
   -- * Lower-level functions
   , openSession
+  , openSession'
   , authenticateWithPassword
   , authenticateWithKey
   , closeSession
