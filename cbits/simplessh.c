@@ -138,23 +138,25 @@ struct simplessh_either *simplessh_open_session(
   if(rc) returnLocalErrorSP(HANDSHAKE);
 
   // Check host in the knownhosts
-  knownhosts = libssh2_knownhost_init(session->lsession);
-  if(!knownhosts) returnLocalErrorSP(KNOWNHOSTS_INIT);
+  if (knownhosts_path) {
+    knownhosts = libssh2_knownhost_init(session->lsession);
+    if(!knownhosts) returnLocalErrorSP(KNOWNHOSTS_INIT);
 
-  libssh2_knownhost_readfile(knownhosts, knownhosts_path, LIBSSH2_KNOWNHOST_FILE_OPENSSH);
+    libssh2_knownhost_readfile(knownhosts, knownhosts_path, LIBSSH2_KNOWNHOST_FILE_OPENSSH);
 
-  hostkey = (char*)libssh2_session_hostkey(session->lsession, &hostkey_len, &hostkey_type);
-  if(hostkey) {
-    struct libssh2_knownhost *host;
-    int check = libssh2_knownhost_check(knownhosts, hostname, hostkey, hostkey_len,
-                                        LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW,
-                                        &host);
+    hostkey = (char*)libssh2_session_hostkey(session->lsession, &hostkey_len, &hostkey_type);
+    if(hostkey) {
+      struct libssh2_knownhost *host;
+      int check = libssh2_knownhost_check(knownhosts, hostname, hostkey, hostkey_len,
+                                          LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW,
+                                          &host);
 
-    if(check != 0) returnLocalErrorSP(KNOWNHOSTS_CHECK);
-    libssh2_knownhost_free(knownhosts);
-  } else {
-    libssh2_knownhost_free(knownhosts);
-    returnLocalErrorSP(KNOWNHOSTS_HOSTKEY);
+      if(check != 0) returnLocalErrorSP(KNOWNHOSTS_CHECK);
+      libssh2_knownhost_free(knownhosts);
+    } else {
+      libssh2_knownhost_free(knownhosts);
+      returnLocalErrorSP(KNOWNHOSTS_HOSTKEY);
+    }
   }
   // End of the knownhosts checking
 
