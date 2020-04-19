@@ -109,9 +109,20 @@ openSession :: String  -- ^ Hostname
             -> Integer -- ^ Port
             -> String  -- ^ Path to the known hosts (e.g. ~/.ssh/known_hosts)
             -> SimpleSSH Session
-openSession hostname port knownhostsPath = liftIOEither $ do
+openSession hostname port knownhostsPath = openSession' hostname port $ Just knownhostsPath
+
+-- | Open a SSH session. The next step is to authenticate.
+openSession' :: String  -- ^ Hostname
+            -> Integer -- ^ Port
+            -> Maybe String  -- ^ Path to the known hosts (e.g. ~/.ssh/known_hosts)
+            -> SimpleSSH Session
+openSession' hostname port knownhostsPathM = liftIOEither $ do
   hostnameC       <- newCString hostname
-  knownhostsPathC <- newCString knownhostsPath
+  knownhostsPathC <- case knownhostsPathM of
+    Nothing ->
+      return nullPtr
+    Just knownhostsPath ->
+      newCString knownhostsPath
   let portC = fromInteger port
 
   res <- liftEitherC (return . Session) $
