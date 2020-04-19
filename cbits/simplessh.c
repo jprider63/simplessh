@@ -255,6 +255,10 @@ struct simplessh_either *simplessh_exec_command(
       waitsocket(session->sock, session->lsession);
     else
       returnLocalErrorC(CHANNEL_OPEN);
+
+    if( interrupted) {
+      returnLocalErrorC( INTERRUPTED);
+    }
   }
 
   // Send the command
@@ -268,6 +272,10 @@ struct simplessh_either *simplessh_exec_command(
     } else {
       returnLocalErrorC(CHANNEL_EXEC);
     }
+
+    if( interrupted) {
+      returnLocalErrorC( INTERRUPTED);
+    }
   }
 
   // Read result
@@ -280,13 +288,20 @@ struct simplessh_either *simplessh_exec_command(
       returnLocalErrorC( INTERRUPTED);
     }
 
-
     rc  = libssh2_channel_read(channel,
                                out + out_position,
                                out_size - out_position - 1);
+    if( interrupted) {
+      returnLocalErrorC( INTERRUPTED);
+    }
+
     rc2 = libssh2_channel_read_stderr(channel,
                                       err + err_position,
                                       err_size - err_position - 1);
+    if( interrupted) {
+      returnLocalErrorC( INTERRUPTED);
+    }
+
 
     if(rc == 0 && rc2 == 0) {
       break;
