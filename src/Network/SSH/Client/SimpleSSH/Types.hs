@@ -45,6 +45,7 @@ data SimpleSSHError
   | Read
   | FileOpen
   | Write
+  | Interrupted
   | Unknown
   deriving (Show, Eq)
 
@@ -62,4 +63,5 @@ readError errNum = case errNum of
   10 -> Read
   11 -> FileOpen
   12 -> Write
+  13 -> Interrupted
   _  -> Unknown

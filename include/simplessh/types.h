@@ -20,7 +20,8 @@ enum simplessh_error {
   CHANNEL_EXEC       = 9,
   READ               = 10,
   FILEOPEN           = 11,
-  WRITE              = 12
+  WRITE              = 12,
+  INTERRUPTED        = 13
 };
 
 struct simplessh_either {

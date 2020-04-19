@@ -1,4 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE InterruptibleFFI #-}
 
 module Network.SSH.Client.SimpleSSH.Foreign where
 
@@ -71,7 +72,7 @@ foreign import ccall "simplessh_authenticate_key"
                    -> CString
                    -> IO CEither
 
-foreign import ccall "simplessh_exec_command"
+foreign import ccall interruptible "simplessh_exec_command"
   execCommandC :: Session
                -> CString
                -> IO CEither

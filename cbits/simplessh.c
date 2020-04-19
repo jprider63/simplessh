@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
@@ -200,6 +201,12 @@ struct simplessh_either *simplessh_authenticate_key(
   return either;
 }
 
+// https://stackoverflow.com/a/52194650/382462
+volatile sig_atomic_t interrupted = 0;
+void interrupt_handler() {
+  interrupted = 1;
+}
+
 struct simplessh_either *simplessh_exec_command(
     struct simplessh_session *session,
     const char *command) {
@@ -222,14 +229,24 @@ struct simplessh_either *simplessh_exec_command(
   either->side    = RIGHT;
   either->u.value = result;
 
+  // Register signal handler.
+  struct sigaction prev_handler;
+  struct sigaction handler = {0};
+  handler.sa_handler = interrupt_handler;
+  sigaction( SIGPIPE, &handler, &prev_handler);
+
   #define returnLocalErrorC(error) { \
     if(out != NULL) free(out); \
     if(err != NULL) free(err); \
     free(result); \
+    sigaction( SIGPIPE, &prev_handler, NULL); \
     returnError(either, (error)); \
   }
 
   while((channel = libssh2_channel_open_session(session->lsession)) == NULL) {
+    if( interrupted)
+      returnLocalErrorC( INTERRUPTED);
+
     if(libssh2_session_last_errno(session->lsession) == LIBSSH2_ERROR_EAGAIN)
       waitsocket(session->sock, session->lsession);
     else
@@ -238,6 +255,9 @@ struct simplessh_either *simplessh_exec_command(
 
   // Send the command
   while((rc = libssh2_channel_exec(channel, command)) != 0) {
+    if( interrupted)
+      returnLocalErrorC( INTERRUPTED);
+
     if(rc == LIBSSH2_ERROR_EAGAIN) {
       waitsocket(session->sock, session->lsession);
     } else {
@@ -251,6 +271,10 @@ struct simplessh_either *simplessh_exec_command(
   err = malloc(err_size);
 
   for(;;) {
+    if( interrupted)
+      returnLocalErrorC( INTERRUPTED);
+
+
     rc  = libssh2_channel_read(channel,
                                out + out_position,
                                out_size - out_position - 1);
@@ -290,8 +314,12 @@ struct simplessh_either *simplessh_exec_command(
   err = realloc(err, err_position + 1);
   result->err = err;
 
-  while((rc = libssh2_channel_close(channel)) == LIBSSH2_ERROR_EAGAIN)
+  while((rc = libssh2_channel_close(channel)) == LIBSSH2_ERROR_EAGAIN) {
+    if( interrupted)
+      returnLocalErrorC( INTERRUPTED);
+
     waitsocket(session->sock, session->lsession);
+  }
 
   if(rc == 0) {
     result->exit_code = libssh2_channel_get_exit_status(channel);
@@ -303,6 +331,9 @@ struct simplessh_either *simplessh_exec_command(
 
 
   libssh2_channel_free(channel);
+
+  // Revert signal handler.
+  sigaction( SIGPIPE, &prev_handler, NULL);
 
   return either;
 }
