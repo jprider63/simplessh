@@ -204,7 +204,7 @@ struct simplessh_either *simplessh_authenticate_key(
 }
 
 // https://stackoverflow.com/a/52194650/382462
-volatile sig_atomic_t interrupted = 0;
+__thread volatile sig_atomic_t interrupted = 0;
 void interrupt_handler() {
   interrupted = 1;
 }
